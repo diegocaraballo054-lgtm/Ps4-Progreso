@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Progreso PS4 - Diego</title>
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background-color: #121212;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+    .grid-juegos {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 20px;
+        width: 100%;
+        max-width: 1200px;
+    }
+    .card {
+        background: #1e1e1e;
+        border-radius: 12px;
+        overflow: hidden;
+        text-align: center;
+        padding-bottom: 15px;
+        border: 1px solid #333;
+        cursor: pointer;
+        transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.3s ease;
+        position: relative;
+    }
+    /* Animación al pasar el mouse */
+    .card:hover {
+        transform: scale(1.05);
+        border-color: #007bff;
+    }
+    /* Estilo cuando el juego está marcado como pasado */
+    .card.marcado {
+        opacity: 0.5;
+        border-color: #28a745;
+    }
+    .caratula {
+        width: 100%;
+        height: 230px;
+        object-fit: cover;
+        pointer-events: none; /* Para que no interfiera con el click */
+    }
+    .nombre {
+        display: block;
+        margin: 12px 5px;
+        font-size: 14px;
+        font-weight: bold;
+        pointer-events: none;
+    }
+    .status-badge {
+        font-size: 12px;
+        color: #28a745;
+        font-weight: bold;
+        display: none;
+    }
+    .marcado .status-badge {
+        display: block;
+    }
+    .buy-link {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: #007bff; /* Color discreto */
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: bold;
+        transition: color 0.3s ease;
+    }
+    .buy-link:hover {
+        color: #007bff; /* Se pone azul al pasar el mouse */
+        text-decoration: underline;
+    }
+
+    /* Ajuste para móviles para que no se pegue al borde */
+    @media (max-width: 600px) {
+        .buy-link {
+            position: static;
+            margin-bottom: 20px;
+        }
+    }
+    .contador-progreso {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    /* Para que en el celular no se amontone con el otro link */
+    @media (max-width: 600px) {
+        .contador-progreso {
+            position: static;
+            margin-top: 10px;
+        }
+    }
+    .search-container {
+        width: 100%;
+        max-width: 400px;
+        margin-bottom: 30px;
+    }
+    #buscador {
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 25px;
+        border: 1px solid #444;
+        background-color: #1e1e1e;
+        color: white;
+        font-size: 16px;
+        outline: none;
+        transition: border-color 0.3s;
+    }
+    #buscador:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
+    }
+    .add-card {
+        cursor: pointer;
+        background: #2e2e2e;
+    }
+    .add-card:hover {
+        transform: none;
+        border-color: #444;
+    }
+    .add-card-icon {
+        width: 100%;
+        height: 230px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 72px;
+        color: #007bff;
+        background: #121212;
+    }
+    .add-card .nombre {
+        margin-top: 15px;
+    }
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        display: none;
+    }
+    .modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1e1e1e;
+        padding: 20px;
+        border-radius: 12px;
+        z-index: 1001;
+        color: white;
+        display: none;
+        min-width: 300px;
+    }
+    .modal-content {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .modal-content h2 {
+        margin: 0;
+        text-align: center;
+    }
+    .modal-content input[type="text"],
+    .modal-content input[type="url"] {
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #444;
+        background-color: #2e2e2e;
+        color: white;
+        font-size: 14px;
+    }
+    .modal-content label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .modal-content label span {
+        flex: 1;
+    }
+    .modal-content input[type="file"],
+    .modal-content input[type="url"] {
+        width: 100%;
+    }
+    .modal-content button {
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .modal-content button:hover {
+        background-color: #0056b3;
+    }
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+    .admin-bar {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .admin-bar button {
+        padding: 10px 16px;
+        border-radius: 25px;
+        border: none;
+        background: #007bff;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .admin-bar button:hover {
+        background: #0056b3;
+    }
+    .admin-panel {
+        width: 100%;
+        max-width: 1200px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .admin-panel h2 {
+        margin: 0 0 10px;
+        font-size: 16px;
+    }
+    .solicitud-card {
+        background: #2a2a2a;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .solicitud-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .solicitud-actions button {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+    .solicitud-accept {
+        background: #28a745;
+        color: white;
+    }
+    .solicitud-reject {
+        background: #dc3545;
+        color: white;
+    }
+    .delete-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(220, 53, 69, 0.9);
+        border: none;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        display: none;
+    }
+    .card.admin-visible .delete-button {
+        display: block;
+    }
+</style>
+</head>
+<body>
+<a href="https://dlpsgame.com/category/ps4/" class="buy-link" target="_blank">Descarga de juegos</a>
+<div class="contador-progreso" id="contador">Juegos completados: 0 / 0</div>
+<div class="search-container">
+    <input type="text" id="buscador" placeholder="Buscar juego..." onkeyup="filtrarJuegos()">
+</div>
+<div class="admin-bar">
+    <button id="adminButton" onclick="toggleAdmin()">Iniciar sesión admin</button>
+    <span id="adminStatus">Modo visitante</span>
+</div>
+    <h1>Lista De Juegos PS4 🎮</h1>
+<div id="admin-panel" class="admin-panel" style="display: none;">
+    <h2>Panel Admin</h2>
+    <div id="solicitudes-container" class="solicitudes-container"></div>
+</div>
+
+    <div class="grid-juegos" id="contenedor"></div>
+
+    <div id="overlay" class="overlay" onclick="cerrarModal()"></div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Enviar solicitud de juego</h2>
+            <input type="text" id="modal-nombre" placeholder="Nombre del juego">
+            <label>
+                <input type="radio" name="img-type" value="link" checked>
+                <span>URL de imagen</span>
+                <input type="url" id="modal-imagen-link" placeholder="Pega el link de la imagen">
+            </label>
+            <label>
+                <input type="radio" name="img-type" value="file">
+                <span>Subir imagen</span>
+                <input type="file" id="modal-imagen-file" accept="image/*">
+            </label>
+            <div class="modal-buttons">
+                <button id="modal-action-button" onclick="agregarDesdeModal()">Enviar solicitud</button>
+                <button onclick="cerrarModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASSWORD = "1311046434033790"; // Cámbialo a una contraseña tuya
+
+        // TU LISTA DE JUEGOS POR DEFECTO
+        const juegosDefault = [
+            { n: "Red dead redemption 2", img: "https://static.wikia.nocookie.net/reddeadredemption/images/0/0a/Reddeadcover.jpg/revision/latest?cb=20180503145113" },
+            { n: "Dark souls 3", img: "https://thesamstore.com/wp-content/uploads/2024/09/formato-imagen-de-producto-sams-store-2021-copia.webp" },
+            { n: "Sekiro", img: "https://sm.ign.com/ign_ap/cover/s/sekiro-sha/sekiro-shadows-die-twice_2km4.jpg" },
+            { n: "Lies of p", img: "https://upload.wikimedia.org/wikipedia/en/d/de/Lies_of_p_cover_art.jpg" },
+            { n: "Elden ring", img: "https://static0.polygonimages.com/wordpress/wp-content/uploads/sharedimages/2024/12/mixcollage-08-dec-2024-02-50-pm-6945-1.jpg" },
+            { n: "Bloodborne", img: "https://juegosdigitalesvenezuela.com/files/images/productos/1544566230-bloodborne-ps4-primaria.jpg" },
+            { n: "The last of us 1 y 2", img: "https://static.wikia.nocookie.net/thelastofus/images/f/fe/Portada_Parte_I_limpia.jpeg/revision/latest/thumbnail/width/360/height/360?cb=20211209015400&path-prefix=es" },
+            { n: "Dragón ball kakarot", img: "https://image.api.playstation.com/vulcan/ap/rnd/202212/1616/ebKSYAneFeVLHD7SAWP1l5TE.png" },
+            { n: "Resident evil 2, 7 y 8", img: "https://image.api.playstation.com/vulcan/ap/rnd/202206/0204/uDFoGvnMTTCLVmTwjj0njGWC.png" },
+            { n: "Fifa", img: "https://m.media-amazon.com/images/I/81lFiUc0HuL._AC_UF1000,1000_QL80_.jpg" },
+            { n: "AC: Vallhala", img: "https://upload.wikimedia.org/wikipedia/en/f/ff/Assassin%27s_Creed_Valhalla_cover.jpg" },
+            { n: "AC: Syndicate", img: "https://static.wikia.nocookie.net/theassassinscreed/images/9/94/Assassins_Creed_Syndicate.jpg/revision/latest?cb=20150512190332&path-prefix=es" },
+            { n: "AC: Black Flag", img: "https://upload.wikimedia.org/wikipedia/en/2/28/Assassin%27s_Creed_IV_-_Black_Flag_cover.jpg" },
+            { n: "AC: Odyssey", img: "https://upload.wikimedia.org/wikipedia/en/9/99/ACOdysseyCoverArt.png" },
+            { n: "Shadow of the Colossus", img: "https://m.media-amazon.com/images/I/81LcQaX+bfL._AC_UF1000,1000_QL80_.jpg" },
+            { n: "Ghost of Tsushima", img: "https://m.media-amazon.com/images/M/MV5BMzVhMGQyM2ItNTVkNi00NDZiLWFiMDMtMTQwOGE3NzQxZmM2XkEyXkFqcGc@._V1_.jpg" },
+            { n: "Fallout 4", img: "https://upload.wikimedia.org/wikipedia/en/7/70/Fallout_4_cover_art.jpg" },
+            { n: "Monster hunter wild", img: "https://upload.wikimedia.org/wikipedia/en/5/52/Monster_Hunter_Wilds_cover.png" },
+            { n: "Spiderman", img: "https://image.api.playstation.com/vulcan/ap/rnd/202009/3021/BtsjAgHT9pqHRXtN9FCk7xc8.png" },
+            { n: "Mortal kombat", img: "https://upload.wikimedia.org/wikipedia/en/7/7e/Mortal_Kombat_11_cover_art.png" },
+            { n: "Battlefield 1", img: "https://thesamstore.com/wp-content/uploads/2019/07/BF-1-PC.jpg" },
+            { n: "Days gone.", img: "https://i.redd.it/qszlxgbl8qw81.jpg" },
+            { n: "Batman Arkham knight", img: "https://static.wikia.nocookie.net/batman/images/3/31/1393950534-bak-key-art-final.jpg/revision/latest?cb=20140304184804&path-prefix=es" },
+            { n: "Watch dogs 2", img: "https://upload.wikimedia.org/wikipedia/en/thumb/b/b0/Watch_Dogs_2.jpg/250px-Watch_Dogs_2.jpg" },
+            { n: "Mafia 1 definitive edition", img: "https://upload.wikimedia.org/wikipedia/en/a/ae/Mafia_Definitive_Edition.jpg" },
+            { n: "Dragón ball fighters z", img: "https://upload.wikimedia.org/wikipedia/en/thumb/a/ad/DBFZ_cover_art.jpg/250px-DBFZ_cover_art.jpg" },
+            { n: "Farcry 5", img: "https://static.wikia.nocookie.net/farcry/images/3/34/FC5452562495563526.jpg/revision/latest?cb=20170524161212" },
+            { n: "Farcry primal", img: "https://i.3djuegos.com/juegos/12461/far_cry_primal/fotos/ficha/far_cry_primal-3208429.jpg" },
+            { n: "Detroit become human", img: "https://upload.wikimedia.org/wikipedia/en/thumb/e/ee/Detroit_Become_Human.jpg/250px-Detroit_Become_Human.jpg" },
+            { n: "A way out", img: "https://image.api.playstation.com/gs2-sec/appkgo/prod/CUSA07995_00/2/i_bf9451994583c160b23f72d11b5c28cdf341e271b35509d51696c3d833fb650b/i/icon0.png" },
+            { n: "Persona 5 royal", img: "https://static.wikia.nocookie.net/megamitensei/images/6/6c/P5R_Key_Art.jpg/revision/latest/scale-to-width-down/1200?cb=20210329153657" },
+            { n: "Infamous Second Son", img: "https://m.media-amazon.com/images/M/MV5BM2RkMDJjNDMtMzNkMi00ZWVlLWI3ODItODU1NDEyMzdhMDIzXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg" },
+            { n: "The witcher 3", img: "https://upload.wikimedia.org/wikipedia/en/0/0c/Witcher_3_cover_art.jpg" },
+            { n: "Gran turismo 7", img: "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/Gran_Turismo_7_cover_art.jpg/250px-Gran_Turismo_7_cover_art.jpg" },
+            { n: "Kingdom hearts collection", img: "https://imguscdn.gamespress.com/cdn/files/Square-Enix/2018/10/na-1-20181005013849/Box_Art.jpg?w=600&mode=max&otf=y&quality=90&format=jpg&bgcolor=white&sky=9c2a429cf0b0f626984971594b9239116cab12e97f9854559b6980339b13559c" },
+            { n: "Ark ultimate survivor edition", img: "https://upload.wikimedia.org/wikipedia/en/thumb/2/2b/ArkSurvivalEvolved.png/250px-ArkSurvivalEvolved.png" },
+            { n: "Cyberpunk 2077", img: "https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg" },
+            { n: "Horizons zero downs", img: "https://upload.wikimedia.org/wikipedia/en/3/3e/Horizon_Zero_Dawn_cover_art.jpg" },
+            { n: "Devil may cry collection, 4 y 5", img: "https://exoplayzone.com/wp-content/uploads/2022/03/devil-may-cry-hd-collection.jpg" }
+        ];
+
+        // Cargar juegos desde localStorage o usar por defecto
+        let juegos = JSON.parse(localStorage.getItem('juegos')) || juegosDefault;
+        let solicitudes = JSON.parse(localStorage.getItem('solicitudes')) || [];
+        let esAdmin = false;
+
+        const contenedor = document.getElementById('contenedor');
+
+        function actualizarContador() {
+            const total = juegos.length;
+            let completados = 0;
+            for (let i = 0; i < total; i++) {
+                if (localStorage.getItem(`juego-${i}`) === 'true') {
+                    completados++;
+                }
+            }
+            document.getElementById('contador').innerText = `Juegos completados: ${completados} / ${total}`;
+        }
+
+        function guardarDatos() {
+            localStorage.setItem('juegos', JSON.stringify(juegos));
+            localStorage.setItem('solicitudes', JSON.stringify(solicitudes));
+        }
+
+        function cargarJuegos() {
+            contenedor.innerHTML = "";
+            juegos.forEach((juego, index) => {
+                const estaMarcado = localStorage.getItem(`juego-${index}`) === 'true';
+                contenedor.innerHTML += `
+                    <div class="card ${estaMarcado ? 'marcado' : ''} ${esAdmin ? 'admin-visible' : ''}" id="card-${index}" onclick="alternarEstado(${index})">
+                        <img src="${juego.img}" class="caratula" onerror="this.src='https://via.placeholder.com/200x300?text=Error+Link'">
+                        <span class="nombre">${juego.n}</span>
+                        <span class="status-badge">✓ PASADO</span>
+                        ${esAdmin ? `<button class="delete-button" onclick="event.stopPropagation(); borrarJuego(${index})">Eliminar</button>` : ''}
+                    </div>
+                `;
+            });
+            contenedor.innerHTML += `
+                <div class="card add-card" onclick="mostrarModal()">
+                    <div class="add-card-icon">+</div>
+                    <span class="nombre">Agregar Juego</span>
+                </div>
+            `;
+            actualizarContador();
+            renderAdminPanel();
+        }
+
+        function alternarEstado(id) {
+            if (!esAdmin) {
+                alert('Solo el administrador puede marcar juegos como completados.');
+                return;
+            }
+            const tarjeta = document.getElementById(`card-${id}`);
+            const nuevoEstado = !tarjeta.classList.contains('marcado');
+            localStorage.setItem(`juego-${id}`, nuevoEstado);
+            if (nuevoEstado) {
+                tarjeta.classList.add('marcado');
+            } else {
+                tarjeta.classList.remove('marcado');
+            }
+            actualizarContador();
+        }
+
+        function mostrarModal() {
+            actualizarModal();
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('modal-nombre').value = '';
+            document.getElementById('modal-imagen-link').value = '';
+            document.getElementById('modal-imagen-file').value = '';
+            document.querySelector('input[name="img-type"][value="link"]').checked = true;
+        }
+
+        function actualizarModal() {
+            document.getElementById('modal-title').innerText = esAdmin ? 'Agregar Nuevo Juego' : 'Enviar solicitud de juego';
+            document.getElementById('modal-action-button').innerText = esAdmin ? 'Agregar' : 'Enviar solicitud';
+        }
+
+        function agregarDesdeModal() {
+            const nombre = document.getElementById('modal-nombre').value.trim();
+            if (!nombre) {
+                alert('Por favor, ingresa el nombre del juego.');
+                return;
+            }
+            const type = document.querySelector('input[name="img-type"]:checked').value;
+            if (type === 'link') {
+                const img = document.getElementById('modal-imagen-link').value.trim();
+                if (!img) {
+                    alert('Por favor, ingresa una URL válida para la imagen.');
+                    return;
+                }
+                if (esAdmin) {
+                    agregarJuegoFinal(nombre, img);
+                } else {
+                    agregarSolicitud(nombre, img);
+                }
+            } else {
+                const file = document.getElementById('modal-imagen-file').files[0];
+                if (!file) {
+                    alert('Por favor, selecciona un archivo de imagen.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = e.target.result;
+                    if (esAdmin) {
+                        agregarJuegoFinal(nombre, img);
+                    } else {
+                        agregarSolicitud(nombre, img);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function agregarSolicitud(nombre, imagen) {
+            const solicitud = {
+                id: Date.now(),
+                nombre,
+                imagen,
+                fecha: new Date().toLocaleString()
+            };
+            solicitudes.push(solicitud);
+            guardarDatos();
+            cerrarModal();
+            alert('Solicitud enviada. El administrador podrá revisar y agregarla.');
+            renderAdminPanel();
+        }
+
+        function agregarJuegoFinal(nombre, img) {
+            juegos.push({ n: nombre, img: img });
+            guardarDatos();
+            cerrarModal();
+            cargarJuegos();
+        }
+
+        function borrarJuego(index) {
+            if (!esAdmin) {
+                alert('Solo el administrador puede borrar juegos.');
+                return;
+            }
+            const confirmado = confirm('¿Seguro quieres eliminar este juego?');
+            if (!confirmado) return;
+            juegos.splice(index, 1);
+            guardarDatos();
+            cargarJuegos();
+        }
+
+        function toggleAdmin() {
+            if (esAdmin) {
+                esAdmin = false;
+                document.getElementById('adminButton').innerText = 'Iniciar sesión admin';
+                document.getElementById('adminStatus').innerText = 'Modo visitante';
+                cargarJuegos();
+                return;
+            }
+            const clave = prompt('Ingresa la contraseña de administrador:');
+            if (clave === null) return;
+            if (clave === ADMIN_PASSWORD) {
+                esAdmin = true;
+                document.getElementById('adminButton').innerText = 'Cerrar sesión admin';
+                document.getElementById('adminStatus').innerText = 'Modo admin';
+                cargarJuegos();
+                alert('Modo administrador activado. Ahora puedes agregar y borrar juegos directamente.');
+            } else {
+                alert('Contraseña incorrecta.');
+            }
+        }
+
+        function renderAdminPanel() {
+            const panel = document.getElementById('admin-panel');
+            const solicitudesContainer = document.getElementById('solicitudes-container');
+            if (!esAdmin) {
+                panel.style.display = 'none';
+                return;
+            }
+            panel.style.display = 'block';
+            if (solicitudes.length === 0) {
+                solicitudesContainer.innerHTML = '<p>No hay solicitudes pendientes.</p>';
+                return;
+            }
+            solicitudesContainer.innerHTML = '';
+            solicitudes.forEach(solicitud => {
+                solicitudesContainer.innerHTML += `
+                    <div class="solicitud-card">
+                        <strong>${solicitud.nombre}</strong>
+                        <span>${solicitud.fecha}</span>
+                        <span>Imagen: ${solicitud.imagen.startsWith('data:') ? 'archivo subido' : solicitud.imagen}</span>
+                        <div class="solicitud-actions">
+                            <button class="solicitud-accept" onclick="aceptarSolicitud(${solicitud.id})">Aceptar</button>
+                            <button class="solicitud-reject" onclick="rechazarSolicitud(${solicitud.id})">Rechazar</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function aceptarSolicitud(id) {
+            const solicitud = solicitudes.find(item => item.id === id);
+            if (!solicitud) return;
+            juegos.push({ n: solicitud.nombre, img: solicitud.imagen });
+            solicitudes = solicitudes.filter(item => item.id !== id);
+            guardarDatos();
+            cargarJuegos();
+        }
+
+        function rechazarSolicitud(id) {
+            solicitudes = solicitudes.filter(item => item.id !== id);
+            guardarDatos();
+            renderAdminPanel();
+            alert('Solicitud rechazada.');
+        }
+
+        function filtrarJuegos() {
+            const texto = document.getElementById('buscador').value.toLowerCase();
+            const tarjetas = document.querySelectorAll('.card');
+            tarjetas.forEach(tarjeta => {
+                const nombreJuego = tarjeta.querySelector('.nombre').innerText.toLowerCase();
+                if (nombreJuego.includes(texto)) {
+                    tarjeta.style.display = 'block';
+                } else {
+                    tarjeta.style.display = 'none';
+                }
+            });
+        }
+
+        cargarJuegos();
+    </script>
+</body>
+</html>
