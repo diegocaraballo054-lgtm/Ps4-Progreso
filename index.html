@@ -440,7 +440,7 @@
             const total = juegos.length;
             let completados = 0;
             juegos.forEach(juego => {
-                if (localStorage.getItem(`juego-${juego.n}`) === 'true') {
+                if (localStorage.getItem(`juego-${encodeURIComponent(juego.n)}`) === 'true') {
                     completados++;
                 }
             });
@@ -452,9 +452,10 @@
         }
 
         function cargarJuegos() {
+            juegos = juegos.map((j,i)=>({j,i,done:localStorage.getItem(`juego-${encodeURIComponent(j.n)}`)==='true'})).sort((a,b)=>b.done - a.done).map(x=>x.j);
             contenedor.innerHTML = "";
             juegos.forEach((juego, index) => {
-                const estaMarcado = localStorage.getItem(`juego-${juego.n}`) === 'true';
+                const estaMarcado = localStorage.getItem(`juego-${encodeURIComponent(juego.n)}`) === 'true';
                 contenedor.innerHTML += `
                     <div class="card ${estaMarcado ? 'marcado' : ''} ${esAdmin ? 'admin-visible' : ''}" id="card-${index}" onclick="alternarEstado(${index})">
                         <img src="${juego.img}" class="caratula" onerror="this.src='https://via.placeholder.com/200x300?text=Error+Link'">
@@ -481,7 +482,7 @@
             }
             const tarjeta = document.getElementById(`card-${id}`);
             const nuevoEstado = !tarjeta.classList.contains('marcado');
-            localStorage.setItem(`juego-${juegos[id].n}`, nuevoEstado);
+            localStorage.setItem(`juego-${encodeURIComponent(juegos[id].n)}`, nuevoEstado);
             if (nuevoEstado) {
                 tarjeta.classList.add('marcado');
             } else {
