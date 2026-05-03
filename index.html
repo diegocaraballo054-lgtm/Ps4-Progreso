@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Mi Progreso PS4 - Diego</title>
+            <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <style>
     body {
         font-family: 'Segoe UI', sans-serif;
@@ -340,6 +342,21 @@
     <script>
         const ADMIN_PASSWORD = "1311046434033790"; // Cámbialo a una contraseña tuya
 
+        const firebaseConfig = {
+            apiKey: "AIzaSyCBO2RfmsPePotv0j_qXi6mM_POpTTrILI",
+            authDomain: "mi-progreso-ps4-diego.firebaseapp.com",
+            projectId: "mi-progreso-ps4-diego",
+            storageBucket: "mi-progreso-ps4-diego.firebasestorage.app",
+            messagingSenderId: "1040635010524",
+            appId: "1:1040635010524:web:3a6c265a801436cd0b0319"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        
+
+
         // TU LISTA DE JUEGOS POR DEFECTO
         const juegosDefault = [
             { n: "Red dead redemption 2", img: "https://static.wikia.nocookie.net/reddeadredemption/images/0/0a/Reddeadcover.jpg/revision/latest?cb=20180503145113" },
@@ -383,12 +400,41 @@
             { n: "Devil may cry collection, 4 y 5", img: "https://exoplayzone.com/wp-content/uploads/2022/03/devil-may-cry-hd-collection.jpg" }
         ];
 
-        // Cargar juegos desde localStorage o usar por defecto
-        let juegos = JSON.parse(localStorage.getItem('juegos')) || juegosDefault;
-        let solicitudes = JSON.parse(localStorage.getItem('solicitudes')) || [];
+        // Cargar juegos desde Firestore o usar por defecto
+        let juegos = [];
+        let solicitudes = [];
         let esAdmin = false;
 
         const contenedor = document.getElementById('contenedor');
+
+        async function cargarDatosFirebase() {
+            await Promise.all([cargarJuegosFirestore(), cargarSolicitudesFirestore()]);
+            cargarJuegos();
+        }
+
+        async function cargarJuegosFirestore() {
+            try {
+                const snapshot = await db.collection('juegos').get();
+                if (snapshot.empty) {
+                    juegos = [...juegosDefault];
+                } else {
+                    juegos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+            } catch (error) {
+                console.error('Error cargando juegos de Firebase:', error);
+                juegos = [...juegosDefault];
+            }
+        }
+
+        async function cargarSolicitudesFirestore() {
+            try {
+                const snapshot = await db.collection('solicitudes').orderBy('fecha', 'desc').get();
+                solicitudes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error('Error cargando solicitudes de Firebase:', error);
+                solicitudes = [];
+            }
+        }
 
         function actualizarContador() {
             const total = juegos.length;
@@ -402,8 +448,7 @@
         }
 
         function guardarDatos() {
-            localStorage.setItem('juegos', JSON.stringify(juegos));
-            localStorage.setItem('solicitudes', JSON.stringify(solicitudes));
+            // Guardamos solo el estado de completado localmente.
         }
 
         function cargarJuegos() {
@@ -415,7 +460,7 @@
                         <img src="${juego.img}" class="caratula" onerror="this.src='https://via.placeholder.com/200x300?text=Error+Link'">
                         <span class="nombre">${juego.n}</span>
                         <span class="status-badge">✓ PASADO</span>
-                        ${esAdmin ? `<button class="delete-button" onclick="event.stopPropagation(); borrarJuego(${index})">Eliminar</button>` : ''}
+                        ${esAdmin && juego.id ? `<button class="delete-button" onclick="event.stopPropagation(); borrarJuego(${index})">Eliminar</button>` : ''}
                     </div>
                 `;
             });
@@ -502,37 +547,57 @@
             }
         }
 
-        function agregarSolicitud(nombre, imagen) {
+        async function agregarSolicitud(nombre, imagen) {
             const solicitud = {
-                id: Date.now(),
                 nombre,
                 imagen,
                 fecha: new Date().toLocaleString()
             };
-            solicitudes.push(solicitud);
-            guardarDatos();
-            cerrarModal();
-            alert('Solicitud enviada. El administrador podrá revisar y agregarla.');
-            renderAdminPanel();
+            try {
+                await db.collection('solicitudes').add(solicitud);
+                cerrarModal();
+                alert('Solicitud enviada. El administrador podrá revisar y aceptar.');
+                await cargarSolicitudesFirestore();
+                renderAdminPanel();
+            } catch (error) {
+                console.error('Error enviando solicitud:', error);
+                alert('No se pudo enviar la solicitud. Intenta de nuevo.');
+            }
         }
 
-        function agregarJuegoFinal(nombre, img) {
-            juegos.push({ n: nombre, img: img });
-            guardarDatos();
-            cerrarModal();
-            cargarJuegos();
+        async function agregarJuegoFinal(nombre, img) {
+            try {
+                await db.collection('juegos').add({ n: nombre, img });
+                cerrarModal();
+                await cargarJuegosFirestore();
+                cargarJuegos();
+                alert('Juego agregado correctamente.');
+            } catch (error) {
+                console.error('Error agregando juego:', error);
+                alert('No se pudo agregar el juego. Intenta de nuevo.');
+            }
         }
 
-        function borrarJuego(index) {
+        async function borrarJuego(index) {
             if (!esAdmin) {
                 alert('Solo el administrador puede borrar juegos.');
                 return;
             }
+            const juego = juegos[index];
+            if (!juego || !juego.id) {
+                alert('Este juego no se puede borrar desde aquí.');
+                return;
+            }
             const confirmado = confirm('¿Seguro quieres eliminar este juego?');
             if (!confirmado) return;
-            juegos.splice(index, 1);
-            guardarDatos();
-            cargarJuegos();
+            try {
+                await db.collection('juegos').doc(juego.id).delete();
+                await cargarJuegosFirestore();
+                cargarJuegos();
+            } catch (error) {
+                console.error('Error borrando juego:', error);
+                alert('No se pudo borrar el juego. Intenta de nuevo.');
+            }
         }
 
         function toggleAdmin() {
@@ -576,28 +641,38 @@
                         <span>${solicitud.fecha}</span>
                         <span>Imagen: ${solicitud.imagen.startsWith('data:') ? 'archivo subido' : solicitud.imagen}</span>
                         <div class="solicitud-actions">
-                            <button class="solicitud-accept" onclick="aceptarSolicitud(${solicitud.id})">Aceptar</button>
-                            <button class="solicitud-reject" onclick="rechazarSolicitud(${solicitud.id})">Rechazar</button>
+                            <button class="solicitud-accept" onclick="aceptarSolicitud('${solicitud.id}')">Aceptar</button>
+                            <button class="solicitud-reject" onclick="rechazarSolicitud('${solicitud.id}')">Rechazar</button>
                         </div>
                     </div>
                 `;
             });
         }
 
-        function aceptarSolicitud(id) {
+        async function aceptarSolicitud(id) {
             const solicitud = solicitudes.find(item => item.id === id);
             if (!solicitud) return;
-            juegos.push({ n: solicitud.nombre, img: solicitud.imagen });
-            solicitudes = solicitudes.filter(item => item.id !== id);
-            guardarDatos();
-            cargarJuegos();
+            try {
+                await db.collection('juegos').add({ n: solicitud.nombre, img: solicitud.imagen });
+                await db.collection('solicitudes').doc(id).delete();
+                await cargarDatosFirebase();
+                alert('Solicitud aceptada y juego agregado.');
+            } catch (error) {
+                console.error('Error aceptando solicitud:', error);
+                alert('No se pudo aceptar la solicitud. Intenta de nuevo.');
+            }
         }
 
-        function rechazarSolicitud(id) {
-            solicitudes = solicitudes.filter(item => item.id !== id);
-            guardarDatos();
-            renderAdminPanel();
-            alert('Solicitud rechazada.');
+        async async function rechazarSolicitud(id) {
+            try {
+                await db.collection('solicitudes').doc(id).delete();
+                await cargarSolicitudesFirestore();
+                renderAdminPanel();
+                alert('Solicitud rechazada.');
+            } catch (error) {
+                console.error('Error rechazando solicitud:', error);
+                alert('No se pudo rechazar la solicitud. Intenta de nuevo.');
+            }
         }
 
         function filtrarJuegos() {
@@ -613,7 +688,7 @@
             });
         }
 
-        cargarJuegos();
+        cargarDatosFirebase();
     </script>
 </body>
 </html>
