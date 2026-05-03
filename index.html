@@ -452,6 +452,7 @@
         }
 
         function cargarJuegos() {
+            juegos = juegos.map((j,i)=>({j,i,done:localStorage.getItem(`juego-${i}`)==='true'})).sort((a,b)=>b.done - a.done).map(x=>x.j);
             contenedor.innerHTML = "";
             juegos.forEach((juego, index) => {
                 const estaMarcado = localStorage.getItem(`juego-${index}`) === 'true';
