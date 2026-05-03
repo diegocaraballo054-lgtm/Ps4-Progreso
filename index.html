@@ -663,7 +663,7 @@
             }
         }
 
-        async async function rechazarSolicitud(id) {
+        async function rechazarSolicitud(id) {
             try {
                 await db.collection('solicitudes').doc(id).delete();
                 await cargarSolicitudesFirestore();
