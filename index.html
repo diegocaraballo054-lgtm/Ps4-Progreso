@@ -432,16 +432,10 @@
         async function cargarJuegosFirestore() {
             try {
                 const snapshot = await db.collection('juegos').get();
-                const juegosFirestore = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (snapshot.empty) {
                     juegos = [...juegosDefault];
                 } else {
-                    const nombresFirestore = new Set(juegosFirestore.map(j => j.n.toLowerCase()));
-                    const nombresOriginalesFirestore = new Set(juegosFirestore.map(j => (j.origName || '').toLowerCase()));
-                    juegos = [
-                        ...juegosDefault.filter(j => !nombresFirestore.has(j.n.toLowerCase()) && !nombresOriginalesFirestore.has(j.n.toLowerCase())),
-                        ...juegosFirestore
-                    ];
+                    juegos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 }
             } catch (error) {
                 console.error('Error cargando juegos de Firebase:', error);
