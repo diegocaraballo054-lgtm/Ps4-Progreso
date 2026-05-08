@@ -294,7 +294,21 @@
         font-size: 12px;
         display: none;
     }
-    .card.admin-visible .delete-button {
+    .edit-button {
+        position: absolute;
+        top: 10px;
+        right: 90px;
+        background: rgba(0, 123, 255, 0.9);
+        border: none;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        display: none;
+    }
+    .card.admin-visible .delete-button,
+    .card.admin-visible .edit-button {
         display: block;
     }
 </style>
@@ -404,6 +418,9 @@
         let juegos = [];
         let solicitudes = [];
         let esAdmin = false;
+        let editarId = null;
+        let editarOriginalName = null;
+        let editarImg = null;
 
         const contenedor = document.getElementById('contenedor');
 
@@ -415,10 +432,16 @@
         async function cargarJuegosFirestore() {
             try {
                 const snapshot = await db.collection('juegos').get();
+                const juegosFirestore = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (snapshot.empty) {
                     juegos = [...juegosDefault];
                 } else {
-                    juegos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const nombresFirestore = new Set(juegosFirestore.map(j => j.n.toLowerCase()));
+                    const nombresOriginalesFirestore = new Set(juegosFirestore.map(j => (j.origName || '').toLowerCase()));
+                    juegos = [
+                        ...juegosDefault.filter(j => !nombresFirestore.has(j.n.toLowerCase()) && !nombresOriginalesFirestore.has(j.n.toLowerCase())),
+                        ...juegosFirestore
+                    ];
                 }
             } catch (error) {
                 console.error('Error cargando juegos de Firebase:', error);
@@ -461,6 +484,7 @@
                         <img src="${juego.img}" class="caratula" onerror="this.src='https://via.placeholder.com/200x300?text=Error+Link'">
                         <span class="nombre">${juego.n}</span>
                         <span class="status-badge">✓ PASADO</span>
+                        ${esAdmin ? `<button class="edit-button" onclick="event.stopPropagation(); abrirModalEditar(${index})">Editar</button>` : ''}
                         ${esAdmin && juego.id ? `<button class="delete-button" onclick="event.stopPropagation(); borrarJuego(${index})">Eliminar</button>` : ''}
                     </div>
                 `;
@@ -493,6 +517,27 @@
         }
 
         function mostrarModal() {
+            editarId = null;
+            editarOriginalName = null;
+            actualizarModal();
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function abrirModalEditar(index) {
+            const juego = juegos[index];
+            if (!juego) return;
+            editarId = juego.id || null;
+            editarOriginalName = juego.id ? (juego.origName || juego.n) : juego.n;
+            editarImg = juego.img || '';
+            document.getElementById('modal-nombre').value = juego.n;
+            if (juego.img && !juego.img.startsWith('data:')) {
+                document.getElementById('modal-imagen-link').value = juego.img;
+                document.querySelector('input[name="img-type"][value="link"]').checked = true;
+            } else {
+                document.getElementById('modal-imagen-link').value = '';
+                document.querySelector('input[name="img-type"][value="link"]').checked = true;
+            }
             actualizarModal();
             document.getElementById('modal').style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
@@ -505,11 +550,19 @@
             document.getElementById('modal-imagen-link').value = '';
             document.getElementById('modal-imagen-file').value = '';
             document.querySelector('input[name="img-type"][value="link"]').checked = true;
+            editarId = null;
+            editarOriginalName = null;
+            editarImg = null;
         }
 
         function actualizarModal() {
-            document.getElementById('modal-title').innerText = esAdmin ? 'Agregar Nuevo Juego' : 'Enviar solicitud de juego';
-            document.getElementById('modal-action-button').innerText = esAdmin ? 'Agregar' : 'Enviar solicitud';
+            if (esAdmin && (editarId !== null || editarOriginalName !== null)) {
+                document.getElementById('modal-title').innerText = 'Editar juego';
+                document.getElementById('modal-action-button').innerText = 'Guardar cambios';
+            } else {
+                document.getElementById('modal-title').innerText = esAdmin ? 'Agregar Nuevo Juego' : 'Enviar solicitud de juego';
+                document.getElementById('modal-action-button').innerText = esAdmin ? 'Agregar' : 'Enviar solicitud';
+            }
         }
 
         function agregarDesdeModal() {
@@ -520,12 +573,17 @@
             }
             const type = document.querySelector('input[name="img-type"]:checked').value;
             if (type === 'link') {
-                const img = document.getElementById('modal-imagen-link').value.trim();
+                let img = document.getElementById('modal-imagen-link').value.trim();
+                if (!img && (editarId !== null || editarOriginalName !== null)) {
+                    img = editarImg || '';
+                }
                 if (!img) {
                     alert('Por favor, ingresa una URL válida para la imagen.');
                     return;
                 }
-                if (esAdmin) {
+                if (esAdmin && (editarId !== null || editarOriginalName !== null)) {
+                    guardarEdicion(nombre, img);
+                } else if (esAdmin) {
                     agregarJuegoFinal(nombre, img);
                 } else {
                     agregarSolicitud(nombre, img);
@@ -533,19 +591,42 @@
             } else {
                 const file = document.getElementById('modal-imagen-file').files[0];
                 if (!file) {
+                    if (esAdmin && (editarId !== null || editarOriginalName !== null) && editarImg) {
+                        guardarEdicion(nombre, editarImg);
+                        return;
+                    }
                     alert('Por favor, selecciona un archivo de imagen.');
                     return;
                 }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const img = e.target.result;
-                    if (esAdmin) {
+                    if (esAdmin && (editarId !== null || editarOriginalName !== null)) {
+                        guardarEdicion(nombre, img);
+                    } else if (esAdmin) {
                         agregarJuegoFinal(nombre, img);
                     } else {
                         agregarSolicitud(nombre, img);
                     }
                 };
                 reader.readAsDataURL(file);
+            }
+        }
+
+        async function guardarEdicion(nombre, img) {
+            try {
+                if (editarId) {
+                    await db.collection('juegos').doc(editarId).update({ n: nombre, img, origName: editarOriginalName || nombre });
+                } else {
+                    await db.collection('juegos').add({ n: nombre, img, origName: editarOriginalName });
+                }
+                cerrarModal();
+                await cargarJuegosFirestore();
+                cargarJuegos();
+                alert('Juego actualizado correctamente.');
+            } catch (error) {
+                console.error('Error guardando la edición:', error);
+                alert('No se pudo guardar los cambios. Intenta de nuevo.');
             }
         }
 
