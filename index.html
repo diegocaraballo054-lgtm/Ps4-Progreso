@@ -6,325 +6,634 @@
             <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <style>
+    :root {
+        color-scheme: dark;
+        --bg: #090b11;
+        --surface: rgba(20, 26, 39, 0.95);
+        --surface-strong: rgba(9, 12, 20, 0.98);
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #e8eef9;
+        --muted: #a7b2ce;
+        --primary: #4f8cff;
+        --primary-strong: #2f6fe0;
+        --success: #2bc06b;
+        --danger: #f25f5c;
+        --yellow: #ffc107;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
     body {
-        font-family: 'Segoe UI', sans-serif;
-        background-color: #121212;
-        color: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-    }
-    .grid-juegos {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 20px;
-        width: 100%;
-        max-width: 1200px;
-    }
-    .card {
-        background: #1e1e1e;
-        border-radius: 12px;
-        overflow: hidden;
-        text-align: center;
-        padding-bottom: 15px;
-        border: 1px solid #333;
-        cursor: pointer;
-        transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.3s ease;
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        background-color: #05070a;
+        color: var(--text);
+        overflow-x: hidden;
         position: relative;
     }
-    /* Animación al pasar el mouse */
-    .card:hover {
-        transform: scale(1.05);
-        border-color: #007bff;
-    }
-    /* Estilo cuando el juego está marcado como pasado */
-    .card.marcado {
-        opacity: 0.5;
-        border-color: #28a745;
-    }
-    .caratula {
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        height: 230px;
-        object-fit: cover;
-        pointer-events: none; /* Para que no interfiera con el click */
+        height: 100%;
+        background: 
+            radial-gradient(circle at 20% 30%, rgba(79, 140, 255, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 80% 70%, rgba(242, 95, 92, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(43, 192, 107, 0.03) 0%, transparent 60%);
+        z-index: -1;
+        animation: backgroundGlow 15s ease-in-out infinite alternate;
     }
-    .nombre {
-        display: block;
-        margin: 12px 5px;
-        font-size: 14px;
-        font-weight: bold;
-        pointer-events: none;
+
+    @keyframes backgroundGlow {
+        0% { transform: scale(1); }
+        100% { transform: scale(1.1) translate(10px, -10px); }
     }
-    .status-badge {
+
+    .page-shell {
+        width: min(1200px, calc(100% - 32px));
+        margin: 0 auto 40px;
+        padding: 20px 0 40px;
+    }
+
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: flex-start;
+        margin-bottom: 28px;
+    }
+
+    .hero-copy {
+        max-width: 680px;
+    }
+
+    .eyebrow {
         font-size: 12px;
-        color: #28a745;
-        font-weight: bold;
-        display: none;
-    }
-    .marcado .status-badge {
-        display: block;
-    }
-    .buy-link {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        color: #007bff; /* Color discreto */
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: bold;
-        transition: color 0.3s ease;
-    }
-    .buy-link:hover {
-        color: #007bff; /* Se pone azul al pasar el mouse */
-        text-decoration: underline;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--primary);
+        margin: 0 0 12px;
     }
 
-    /* Ajuste para móviles para que no se pegue al borde */
-    @media (max-width: 600px) {
-        .buy-link {
-            position: static;
-            margin-bottom: 20px;
-        }
+    h1 {
+        margin: 0;
+        font-size: clamp(2.2rem, 2.4vw, 3.4rem);
+        line-height: 1.02;
     }
+
+    .hero-subtitle {
+        margin: 16px 0 0;
+        color: var(--muted);
+        max-width: 640px;
+        line-height: 1.75;
+        font-size: 1rem;
+    }
+
+    .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .buy-link,
     .contador-progreso {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: #28a745;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: bold;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
     }
 
-    /* Para que en el celular no se amontone con el otro link */
-    @media (max-width: 600px) {
-        .contador-progreso {
-            position: static;
-            margin-top: 10px;
-        }
+    .stats-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 240px;
     }
-    .search-container {
+
+    .progress-track {
         width: 100%;
-        max-width: 400px;
-        margin-bottom: 30px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
     }
+
+    .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--primary), var(--success));
+        box-shadow: 0 0 15px var(--primary);
+        transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .buy-link {
+        padding: 12px 18px;
+        background: rgba(79, 140, 255, 0.15);
+        color: var(--primary);
+        border: 1px solid rgba(79, 140, 255, 0.25);
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .buy-link:hover {
+        transform: translateY(-1px);
+        background: rgba(79, 140, 255, 0.24);
+    }
+
+    .contador-progreso {
+        padding: 10px 18px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text);
+        box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+        white-space: nowrap;
+    }
+
+    .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 26px;
+    }
+
+    .search-container {
+        flex: 1 1 320px;
+        min-width: 240px;
+    }
+
     #buscador {
         width: 100%;
-        padding: 12px 20px;
-        border-radius: 25px;
-        border: 1px solid #444;
-        background-color: #1e1e1e;
-        color: white;
-        font-size: 16px;
+        padding: 14px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background-color: rgba(255,255,255,0.04);
+        color: var(--text);
+        font-size: 1rem;
         outline: none;
-        transition: border-color 0.3s;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     }
+
     #buscador:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
+        border-color: rgba(79, 140, 255, 0.65);
+        background-color: rgba(255,255,255,0.06);
+        box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.12);
     }
+
+    .filter-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .filter-btn {
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .admin-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        flex: 0 1 auto;
+    }
+
+    .admin-bar button {
+        padding: 12px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(79, 140, 255, 0.18);
+        color: var(--text);
+        transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .admin-bar button:hover {
+        transform: translateY(-1px);
+        background: rgba(79, 140, 255, 0.26);
+    }
+
+    .admin-countdown {
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(255, 193, 7, 0.14);
+        color: var(--yellow);
+        font-weight: 700;
+        font-size: 0.95rem;
+        white-space: nowrap;
+    }
+
+    .admin-panel {
+        width: 100%;
+        background: rgba(15, 20, 33, 0.95);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 18px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.18);
+    }
+
+    .admin-panel h2 {
+        margin: 0 0 16px;
+        font-size: 1.1rem;
+        letter-spacing: 0.02em;
+    }
+
+    .solicitud-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 14px;
+    }
+
+    .solicitud-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .solicitud-actions button {
+        min-width: 110px;
+    }
+
+    .solicitud-accept,
+    .solicitud-reject,
+    .delete-button,
+    .edit-button {
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .solicitud-accept:hover,
+    .solicitud-reject:hover,
+    .delete-button:hover,
+    .edit-button:hover {
+        transform: translateY(-1px);
+        opacity: 0.95;
+    }
+
+    .delete-button {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 10;
+        background: var(--danger);
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .edit-button {
+        position: absolute;
+        top: 12px;
+        right: 95px;
+        z-index: 10;
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .grid-juegos {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-auto-rows: 1fr;
+        gap: 20px;
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .card {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        background: rgba(12, 16, 29, 0.98);
+        border-radius: 22px;
+        overflow: hidden;
+        text-align: left;
+        border: 2px solid rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        position: relative;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.14);
+        min-height: 360px;
+    }
+
+    .card:hover {
+        transform: translateY(-4px);
+        border-color: transparent;
+        background-image: linear-gradient(rgba(12, 16, 29, 0.98), rgba(12, 16, 29, 0.98)), 
+                          linear-gradient(45deg, #ff0000, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff0000);
+        background-origin: border-box;
+        background-clip: padding-box, border-box;
+        box-shadow: 0 0 20px rgba(255, 0, 255, 0.15), 
+                    0 0 40px rgba(0, 255, 255, 0.15), 
+                    0 0 60px rgba(255, 255, 255, 0.05);
+    }
+
+    .card.marcado {
+        opacity: 0.7;
+        border-color: rgba(43, 192, 107, 0.45);
+    }
+
+    .card-image-wrapper {
+        position: relative;
+        overflow: hidden;
+        min-height: 260px;
+        width: 100%;
+        flex: 1 1 auto;
+        aspect-ratio: 3 / 4;
+    }
+
+    .caratula {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        filter: brightness(0.97);
+    }
+
+    .image-gradient {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 55%;
+        background: linear-gradient(180deg, transparent 10%, rgba(0, 0, 0, 0.92) 100%);
+        pointer-events: none;
+    }
+
+    .card-body {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .nombre {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: 0;
+        padding: 16px 16px 14px;
+        font-size: 1rem;
+        font-weight: 800;
+        color: white;
+        line-height: 1.3;
+        background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.78) 100%);
+        text-shadow: 0 8px 18px rgba(0,0,0,0.6);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        white-space: normal;
+        min-height: 3rem;
+        z-index: 3;
+    }
+
+    .status-badge {
+        font-size: 0.85rem;
+        color: var(--success);
+        font-weight: 700;
+        display: none;
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: rgba(12, 16, 29, 0.95);
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        z-index: 3;
+    }
+
+    .marcado .status-badge {
+        display: inline-flex;
+    }
+
+    .card-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .card-meta {
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
     .add-card {
         cursor: pointer;
-        background: #2e2e2e;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 360px;
+        background: rgba(255,255,255,0.04);
+        border: 1px dashed rgba(255,255,255,0.16);
+        overflow: hidden;
     }
-    .add-card:hover {
-        transform: none;
-        border-color: #444;
-    }
+
     .add-card-icon {
         width: 100%;
-        height: 230px;
+        height: 260px;
+        aspect-ratio: 3 / 4;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 72px;
-        color: #007bff;
-        background: #121212;
+        font-size: 68px;
+        color: var(--primary);
+        background: rgba(79, 140, 255, 0.08);
     }
+
     .add-card .nombre {
-        margin-top: 15px;
+        margin-top: 18px;
+        display: block;
+        color: var(--text);
     }
+
     .overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.75);
         z-index: 1000;
         display: none;
     }
+
     .modal {
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: #1e1e1e;
-        padding: 20px;
-        border-radius: 12px;
+        background: rgba(8, 12, 22, 0.98);
+        padding: 28px;
+        border-radius: 24px;
         z-index: 1001;
-        color: white;
+        color: var(--text);
         display: none;
-        min-width: 300px;
+        min-width: 320px;
+        width: min(460px, calc(100% - 32px));
+        border: 1px solid rgba(255,255,255,0.08);
     }
+
     .modal-content {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 18px;
     }
-    .modal-content h2 {
-        margin: 0;
-        text-align: center;
+
+    .modal-content input,
+    .modal-content button {
+        font-family: inherit;
     }
+
     .modal-content input[type="text"],
     .modal-content input[type="url"] {
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid #444;
-        background-color: #2e2e2e;
-        color: white;
-        font-size: 14px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background-color: rgba(255,255,255,0.04);
+        color: var(--text);
+        font-size: 1rem;
     }
+
+    .modal-content input[type="file"] {
+        width: 100%;
+        color: var(--text);
+    }
+
     .modal-content label {
         display: flex;
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 0.95rem;
     }
-    .modal-content label span {
-        flex: 1;
-    }
-    .modal-content input[type="file"],
-    .modal-content input[type="url"] {
-        width: 100%;
-    }
+
     .modal-content button {
-        padding: 10px;
-        border-radius: 8px;
+        padding: 14px 18px;
+        border-radius: 14px;
         border: none;
-        background-color: #007bff;
+        background: var(--primary);
         color: white;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 0.98rem;
+        font-weight: 700;
     }
+
     .modal-content button:hover {
-        background-color: #0056b3;
+        background-color: var(--primary-strong);
     }
+
     .modal-buttons {
         display: flex;
-        gap: 10px;
+        gap: 12px;
         justify-content: center;
-    }
-    .admin-bar {
-        width: 100%;
-        max-width: 1200px;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    .admin-bar button {
-        padding: 10px 16px;
-        border-radius: 25px;
-        border: none;
-        background: #007bff;
-        color: white;
-        cursor: pointer;
-        font-size: 14px;
-    }
-    .admin-bar button:hover {
-        background: #0056b3;
-    }
-    .admin-panel {
-        width: 100%;
-        max-width: 1200px;
-        background: #1a1a1a;
-        border: 1px solid #333;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    .admin-panel h2 {
-        margin: 0 0 10px;
-        font-size: 16px;
-    }
-    .solicitud-card {
-        background: #2a2a2a;
-        border-radius: 10px;
-        padding: 12px;
-        margin-bottom: 10px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .solicitud-actions {
-        display: flex;
-        gap: 10px;
         flex-wrap: wrap;
     }
-    .solicitud-actions button {
-        padding: 8px 12px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 13px;
+
+    .admin-bar,
+    .meta-row,
+    .admin-panel,
+    .grid-juegos {
+        width: 100%;
     }
-    .solicitud-accept {
-        background: #28a745;
-        color: white;
-    }
-    .solicitud-reject {
-        background: #dc3545;
-        color: white;
-    }
-    .delete-button {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(220, 53, 69, 0.9);
-        border: none;
-        color: white;
-        padding: 6px 10px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 12px;
-        display: none;
-    }
-    .edit-button {
-        position: absolute;
-        top: 10px;
-        right: 90px;
-        background: rgba(0, 123, 255, 0.9);
-        border: none;
-        color: white;
-        padding: 6px 10px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 12px;
-        display: none;
-    }
-    .card.admin-visible .delete-button,
-    .card.admin-visible .edit-button {
-        display: block;
+
+    @media (max-width: 760px) {
+        .page-header,
+        .meta-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .admin-bar {
+            justify-content: flex-start;
+        }
+
+        .card {
+            min-height: auto;
+        }
+
+        .add-card-icon {
+            height: 200px;
+            font-size: 60px;
+        }
     }
 </style>
 </head>
 <body>
-<a href="https://dlpsgame.com/category/ps4/" class="buy-link" target="_blank">Descarga de juegos</a>
-<div class="contador-progreso" id="contador">Juegos completados: 0 / 0</div>
-<div class="search-container">
-    <input type="text" id="buscador" placeholder="Buscar juego..." onkeyup="filtrarJuegos()">
-</div>
-<div class="admin-bar">
-    <button id="adminButton" onclick="toggleAdmin()">Iniciar sesión admin</button>
-    <span id="adminStatus">Modo visitante</span>
-</div>
-    <h1>Lista De Juegos PS4 🎮</h1>
-<div id="admin-panel" class="admin-panel" style="display: none;">
+<div class="page-shell">
+    <header class="page-header">
+        <div class="hero-copy">
+            <p class="eyebrow">Control total</p>
+            <h1>Mi Progreso PS4 🎮</h1>
+            <p class="hero-subtitle">Organiza tu colección, encuentra tus juegos rápido y administra la librería con un panel de admin cómodo y moderno.</p>
+        </div>
+        <div class="header-actions">
+            <a href="https://dlpsgame.com/category/ps4/" class="buy-link" target="_blank">Descarga de juegos</a>
+            <div class="stats-container">
+                <div class="contador-progreso" id="contador">Juegos completados: 0 / 0</div>
+                <div class="progress-track">
+                    <div id="progress-bar" class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="meta-row">
+        <div class="search-container">
+            <input type="text" id="buscador" placeholder="Buscar juego..." onkeyup="filtrarJuegos()">
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="setFiltro('todos', this)">Todos</button>
+                <button class="filter-btn" onclick="setFiltro('pendientes', this)">Pendientes</button>
+                <button class="filter-btn" onclick="setFiltro('completados', this)">Pasados</button>
+            </div>
+        </div>
+        <div class="admin-bar">
+            <button id="adminButton" onclick="toggleAdmin()">Iniciar sesión admin</button>
+            <span id="adminStatus">Modo visitante</span>
+            <span id="adminCountdown" class="admin-countdown" style="display:none;">00D / 00H / 00M</span>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="admin-panel" style="display: none;">
     <h2>Panel Admin</h2>
     <div id="solicitudes-container" class="solicitudes-container"></div>
 </div>
@@ -421,6 +730,9 @@
         let editarId = null;
         let editarOriginalName = null;
         let editarImg = null;
+        let filtroActual = 'todos';
+        const ADMIN_SESSION_KEY = 'adminSessionExpiresAt';
+        const ADMIN_SESSION_DAYS = 7;
 
         const contenedor = document.getElementById('contenedor');
 
@@ -462,24 +774,114 @@
                 }
             });
             document.getElementById('contador').innerText = `Juegos completados: ${completados} / ${total}`;
+            const porcentaje = total > 0 ? (completados / total) * 100 : 0;
+            document.getElementById('progress-bar').style.width = `${porcentaje}%`;
         }
 
         function guardarDatos() {
             // Guardamos solo el estado de completado localmente.
         }
 
+        let adminCountdownInterval = null;
+        const padNumber = value => String(value).padStart(2, '0');
+
+        function actualizarAdminUI() {
+            document.getElementById('adminButton').innerText = esAdmin ? 'Cerrar sesión admin' : 'Iniciar sesión admin';
+            document.getElementById('adminStatus').innerText = esAdmin ? 'Modo admin' : 'Modo visitante';
+            updateAdminCountdown();
+            if (esAdmin) {
+                startAdminCountdownInterval();
+            } else {
+                stopAdminCountdownInterval();
+            }
+        }
+
+        function getAdminSessionRemaining() {
+            const exp = localStorage.getItem(ADMIN_SESSION_KEY);
+            if (!exp || isNaN(exp)) return 0;
+            return Math.max(0, Number(exp) - Date.now());
+        }
+
+        function updateAdminCountdown() {
+            const countdownEl = document.getElementById('adminCountdown');
+            const remaining = getAdminSessionRemaining();
+            if (esAdmin && remaining > 0) {
+                const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+                const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+                countdownEl.innerText = `${padNumber(days)}D / ${padNumber(hours)}H / ${padNumber(minutes)}M`;
+                countdownEl.style.display = 'inline-block';
+            } else {
+                countdownEl.innerText = '00D / 00H / 00M';
+                countdownEl.style.display = 'none';
+                if (remaining === 0 && esAdmin) {
+                    esAdmin = false;
+                    localStorage.removeItem(ADMIN_SESSION_KEY);
+                    actualizarAdminUI();
+                    cargarJuegos();
+                }
+            }
+        }
+
+        function startAdminCountdownInterval() {
+            if (adminCountdownInterval) return;
+            adminCountdownInterval = setInterval(() => {
+                updateAdminCountdown();
+            }, 1000);
+        }
+
+        function stopAdminCountdownInterval() {
+            if (!adminCountdownInterval) return;
+            clearInterval(adminCountdownInterval);
+            adminCountdownInterval = null;
+        }
+
+        function checkAdminSession() {
+            const exp = localStorage.getItem(ADMIN_SESSION_KEY);
+            if (exp && !isNaN(exp) && Number(exp) > Date.now()) {
+                esAdmin = true;
+            } else {
+                esAdmin = false;
+                localStorage.removeItem(ADMIN_SESSION_KEY);
+            }
+            actualizarAdminUI();
+        }
+
+        function setFiltro(nuevoFiltro, btn) {
+            filtroActual = nuevoFiltro;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            cargarJuegos();
+        }
+
         function cargarJuegos() {
-            juegos = juegos.map((j,i)=>({j,i,done:localStorage.getItem(`juego-${encodeURIComponent(j.n)}`)==='true'})).sort((a,b)=>b.done - a.done).map(x=>x.j);
+            let juegosOrdenados = juegos.map((j,i)=>({j,i,done:localStorage.getItem(`juego-${encodeURIComponent(j.n)}`)==='true'}))
+                                        .sort((a,b)=>b.done - a.done)
+                                        .map(x=>x.j);
+            
+            let juegosAMostrar = juegosOrdenados;
+            if (filtroActual === 'completados') {
+                juegosAMostrar = juegosOrdenados.filter(j => localStorage.getItem(`juego-${encodeURIComponent(j.n)}`) === 'true');
+            } else if (filtroActual === 'pendientes') {
+                juegosAMostrar = juegosOrdenados.filter(j => localStorage.getItem(`juego-${encodeURIComponent(j.n)}`) !== 'true');
+            }
+
             contenedor.innerHTML = "";
-            juegos.forEach((juego, index) => {
+            juegosAMostrar.forEach((juego, index) => {
                 const estaMarcado = localStorage.getItem(`juego-${encodeURIComponent(juego.n)}`) === 'true';
+                // Escapamos comillas simples para evitar errores en el onclick
+                const nEnc = encodeURIComponent(juego.n).replace(/'/g, "\\'");
+                
                 contenedor.innerHTML += `
-                    <div class="card ${estaMarcado ? 'marcado' : ''} ${esAdmin ? 'admin-visible' : ''}" id="card-${index}" onclick="alternarEstado(${index})">
-                        <img src="${juego.img}" class="caratula" onerror="this.src='https://via.placeholder.com/200x300?text=Error+Link'">
-                        <span class="nombre">${juego.n}</span>
-                        <span class="status-badge">✓ PASADO</span>
-                        ${esAdmin ? `<button class="edit-button" onclick="event.stopPropagation(); abrirModalEditar(${index})">Editar</button>` : ''}
-                        ${esAdmin && juego.id ? `<button class="delete-button" onclick="event.stopPropagation(); borrarJuego(${index})">Eliminar</button>` : ''}
+                    <div class="card ${estaMarcado ? 'marcado' : ''} ${esAdmin ? 'admin-visible' : ''}" onclick="alternarEstadoPorNombre('${nEnc}')">
+                        <div class="card-image-wrapper">
+                            <img src="${juego.img}" class="caratula" onerror="this.src='https://via.placeholder.com/300x260?text=Imagen+no+disponible'">
+                            <div class="image-gradient"></div>
+                            <span class="nombre">${juego.n}</span>
+                            <span class="status-badge">✓ PASADO</span>
+                            ${esAdmin ? `<button class="edit-button" onclick="event.stopPropagation(); abrirModalEditarPorNombre('${nEnc}')">Editar</button>` : ''}
+                            ${esAdmin && juego.id ? `<button class="delete-button" onclick="event.stopPropagation(); borrarJuegoPorId('${juego.id}')">Eliminar</button>` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -491,23 +893,6 @@
             `;
             actualizarContador();
             renderAdminPanel();
-        }
-
-        function alternarEstado(id) {
-            if (!esAdmin) {
-                alert('Solo el administrador puede marcar juegos como completados.');
-                return;
-            }
-            const tarjeta = document.getElementById(`card-${id}`);
-            const nuevoEstado = !tarjeta.classList.contains('marcado');
-            localStorage.setItem(`juego-${encodeURIComponent(juegos[id].n)}`, nuevoEstado);
-            if (nuevoEstado) {
-                tarjeta.classList.add('marcado');
-            } else {
-                tarjeta.classList.remove('marcado');
-            }
-            actualizarContador();
-            cargarJuegos();
         }
 
         function mostrarModal() {
@@ -680,8 +1065,8 @@
         function toggleAdmin() {
             if (esAdmin) {
                 esAdmin = false;
-                document.getElementById('adminButton').innerText = 'Iniciar sesión admin';
-                document.getElementById('adminStatus').innerText = 'Modo visitante';
+                localStorage.removeItem(ADMIN_SESSION_KEY);
+                actualizarAdminUI();
                 cargarJuegos();
                 return;
             }
@@ -689,10 +1074,11 @@
             if (clave === null) return;
             if (clave === ADMIN_PASSWORD) {
                 esAdmin = true;
-                document.getElementById('adminButton').innerText = 'Cerrar sesión admin';
-                document.getElementById('adminStatus').innerText = 'Modo admin';
+                const expiresAt = Date.now() + ADMIN_SESSION_DAYS * 24 * 60 * 60 * 1000;
+                localStorage.setItem(ADMIN_SESSION_KEY, String(expiresAt));
+                actualizarAdminUI();
                 cargarJuegos();
-                alert('Modo administrador activado. Ahora puedes agregar y borrar juegos directamente.');
+                alert('Modo administrador activado. Ahora puedes agregar y borrar juegos directamente. Esta sesión permanecerá activa por 7 días.');
             } else {
                 alert('Contraseña incorrecta.');
             }
@@ -752,6 +1138,34 @@
             }
         }
 
+        // FUNCIONES PARA INTERACCIÓN DE CARTAS
+        function alternarEstadoPorNombre(nombreEncoded) {
+            if (!esAdmin) {
+                alert('Solo el administrador puede marcar juegos como completados.');
+                return;
+            }
+            const nombre = decodeURIComponent(nombreEncoded);
+            const llave = `juego-${nombreEncoded}`;
+            const actual = localStorage.getItem(llave) === 'true';
+            
+            localStorage.setItem(llave, !actual);
+            actualizarContador();
+            cargarJuegos();
+        }
+
+        function abrirModalEditarPorNombre(nombreEncoded) {
+            const nombre = decodeURIComponent(nombreEncoded);
+            const index = juegos.findIndex(j => j.n === nombre);
+            if (index !== -1) abrirModalEditar(index);
+        }
+
+        async function borrarJuegoPorId(id) {
+            const index = juegos.findIndex(j => j.id === id);
+            if (index !== -1) {
+                await borrarJuego(index);
+            }
+        }
+
         function filtrarJuegos() {
             const texto = document.getElementById('buscador').value.toLowerCase();
             const tarjetas = document.querySelectorAll('.card');
@@ -765,6 +1179,7 @@
             });
         }
 
+        checkAdminSession();
         cargarDatosFirebase();
     </script>
 </body>
